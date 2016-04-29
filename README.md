@@ -1,6 +1,9 @@
 # Wabisabi
 
-Wabisabi is a renderer of buddhabrot and it's family members. It shares it's name with a Japanese asthethic called [Wabi-sabi](https://en.wikipedia.org/wiki/Wabi-sabi) which is a reference to the impossibility of creating the real buddhabrot and learning to accept the beauty in reality and it's flaws. 
+Wabisabi is a renderer of buddhabrot and it's family members. It shares it's name with a Japanese asthethic called [Wabi-sabi](https://en.wikipedia.org/wiki/Wabi-sabi). Referencing the impossibility of creating the real buddhabrot and learning to accept the beauty in reality and it's flaws. 
+
+[!Anti-buddhabrot](https://github.com/karlek/wabisabi/raw/master/img/anti.jpg)
+[!Original buddhabrot](https://github.com/karlek/wabisabi/raw/master/img/original.jpg)
 
 __Features__
 
@@ -11,8 +14,10 @@ __Features__
 * Using the color palette of an image to color the brot.
 * Change the co-efficient of the complex function i.e __a__\*z\*z+__a__\*c
 * Zooming.
-* Parallel 
+* Multiple CPU support. 
+* Hand optimized assembly(!) for generating random complex points. Thank you [7i](https://github.com/7i)
 
+[!Benchmark](https://github.com/karlek/wabisabi/raw/master/img/benchmark.png)
 
 __Future features__
 
