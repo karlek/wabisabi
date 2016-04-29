@@ -1,9 +1,6 @@
 package main
 
-import (
-	"io"
-	"math"
-)
+import "math"
 
 // Credits: https://github.com/morcmarc/buddhabrot/blob/master/buddhabrot.go
 func isInBulb(c complex128) bool {
@@ -48,8 +45,7 @@ func escaped(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 
 	// See if the complex function diverges before we reach our iteration count.
 	for i := 0; i < iterations; i++ {
-		z = z*z + c
-		/// z = complex(coefficient, 0)*complex(real(z), imag(z))*complex(real(z), imag(z)) + complex(coefficient, 0)*complex(real(c), imag(c))
+		z = complex(coefficient, 0)*complex(real(z), imag(z))*complex(real(z), imag(z)) + complex(coefficient, 0)*complex(real(c), imag(c))
 
 		// Cycle-detection (See algorithmic explanation in README.md).
 		if (i-1)&i == 0 && i > 1 {
@@ -60,7 +56,7 @@ func escaped(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 		// This point diverges, so we all the preceeding points are interesting
 		// and will be registered.
 		if x, y := real(z), imag(z); x*x+y*y >= bailout {
-			// Ignore lower iteration orbits to reduce noise.
+			// Orbits with low iteration count will be ignored to reduce noise.
 			if num < 1000 {
 				return
 			}
@@ -68,8 +64,7 @@ func escaped(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 			return
 		}
 
-		/// points[num] = plane(z, c)
-		points[num] = z
+		points[num] = plane(z, c)
 		num++
 	}
 	// This point converges; assumed under the number of iterations.
@@ -90,7 +85,8 @@ func converged(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 
 	// See if the complex function diverges before we reach our iteration count.
 	for i := 0; i < iterations; i++ {
-		z = z*z + c
+		z = complex(coefficient, 0)*complex(real(z), imag(z))*complex(real(z), imag(z)) + complex(coefficient, 0)*complex(real(c), imag(c))
+
 		// Cycle-detection (See algorithmic explanation in README.md).
 		if (i-1)&i == 0 && i > 1 {
 			brent = z
@@ -98,41 +94,24 @@ func converged(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 			registerOrbits(points, num, r, g, b)
 			return
 		}
-		// This point diverges, so we all the preceeding points are interesting
-		// and will be registered.
+		// This point diverges. Since it's the anti-buddhabrot, we are not
+		// interested in these points.
 		if x, y := real(z), imag(z); x*x+y*y >= bailout {
 			return
 		}
 
-		points[num] = z
+		points[num] = plane(z, c)
 		num++
 	}
-	// This point converges; assumed under the number of iterations.
+	// This point converges; assumed under the number of iterations. Since it's
+	// the anti-buddhabrot we register the orbit.
 	registerOrbits(points, num, r, g, b)
 	return
 }
 
-// registerOrbits register the points in an orbit in r,g,b channels depending on
-// it's iteration count. Orbits with low iteration count will be ignored to
-// reduce noise.
-func registerOrbits(points *[iterations]complex128, it int, r, g, b *Histo) {
-	red, green, blue := grad.Get(it % len(grad))
-	for _, z := range points[:it] {
-		p := ptoc(z)
-		// Ignore points outside image.
-		if p.X >= width || p.Y >= height || p.X < 0 || p.Y < 0 {
-			continue
-		}
-		// Get color from gradient based on iteration count of the orbit.
-		r[p.X][p.Y] += float64(red)
-		g[p.X][p.Y] += float64(green)
-		b[p.X][p.Y] += float64(blue)
-	}
-}
-
 // primitive returns all points in the domain of the complex function
 // diverging.
-func primitive(random io.Reader, points *[iterations]complex128, c complex128) []complex128 {
+func primitive(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 	// Saved value for cycle-detection.
 	var brent complex128
 
@@ -144,26 +123,50 @@ func primitive(random io.Reader, points *[iterations]complex128, c complex128) [
 
 	// See if the complex function diverges before we reach our iteration count.
 	for i := 0; i < iterations; i++ {
-		z = z*z + c
+		z = complex(coefficient, 0)*complex(real(z), imag(z))*complex(real(z), imag(z)) + complex(coefficient, 0)*complex(real(c), imag(c))
+
 		// Cycle-detection (See algorithmic explanation in README.md).
 		if (i-1)&i == 0 && i > 1 {
 			brent = z
 		} else if z == brent {
-			return points[:num]
+			registerOrbits(points, num, r, g, b)
+			return
 		}
-		// This point diverges, so we all the preceeding points are interesting
-		// and will be returned.
+		// This point diverges. Since it's the primitive brot we register the
+		// orbit.
 		if x, y := real(z), imag(z); x*x+y*y >= bailout {
-			return points[:num]
+			registerOrbits(points, num, r, g, b)
+			return
 		}
 		// Save the point.
 		points[num] = plane(z, c)
 		num++
 	}
 	// This point converges; assumed under the number of iterations.
-	return points[:num]
+	// Since it's the primitive brot we register the orbit.
+	registerOrbits(points, num, r, g, b)
+	return
 }
 
+// abs returns the absolute value of a complex point. Is used for experimenting
+// with new complex functions.
 func abs(c complex128) complex128 {
 	return complex(math.Abs(real(c)), math.Abs(imag(c)))
+}
+
+// registerOrbits register the points in an orbit in r,g,b channels depending on
+// it's iteration count. 
+func registerOrbits(points *[iterations]complex128, it int, r, g, b *Histo) {
+	// Get color from gradient based on iteration count of the orbit.
+	red, green, blue := grad.Get(it % len(grad))
+	for _, z := range points[:it] {
+		p := ptoc(z)
+		// Ignore points outside image.
+		if p.X >= width || p.Y >= height || p.X < 0 || p.Y < 0 {
+			continue
+		}
+		r[p.X][p.Y] += float64(red)
+		g[p.X][p.Y] += float64(green)
+		b[p.X][p.Y] += float64(blue)
+	}
 }

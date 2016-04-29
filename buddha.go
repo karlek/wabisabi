@@ -178,7 +178,7 @@ func parseAdvancedFlags() {
 	if anti {
 		brot = converged
 	} else if primitiveFlag {
-		// brot	 = primitive
+		brot = primitive
 	} else {
 		brot = escaped
 	}
