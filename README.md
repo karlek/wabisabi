@@ -1,9 +1,11 @@
 # Wabisabi
 
-Wabisabi is a renderer of buddhabrot and it's family members. It shares it's name with a Japanese asthethic called [Wabi-sabi](https://en.wikipedia.org/wiki/Wabi-sabi). Referencing the impossibility of creating the real buddhabrot and learning to accept the beauty in reality and it's flaws. 
+Wabisabi is a renderer of buddhabrot and it's family members. It shares it's name with a Japanese aesthetic called [Wabi-sabi](https://en.wikipedia.org/wiki/Wabi-sabi). Referencing the impossibility of creating the real buddhabrot and learning to accept the beauty in reality and it's flaws. 
 
-![Anti-buddhabrot](https://github.com/karlek/wabisabi/blob/master/img/anti.jpg?raw=true)
-![Original buddhabrot](https://github.com/karlek/wabisabi/blob/master/img/original.jpg?raw=true)
+The name will probably be changed to it's lovely nickname wasabi anytime soon hahaha <3
+
+<img src=https://github.com/karlek/wabisabi/blob/master/img/anti.jpg?raw=true width=49%>
+<img src=https://github.com/karlek/wabisabi/blob/master/img/original.jpg?raw=true width=49%>
 
 __Features__
 
@@ -70,8 +72,33 @@ z := complex(math.Sin(real(c)), math.Sin(imag(c)))
 * Since the orbits reminds me of a circle; it could be possible to unravel the circle and convert them into sine-waves to create tones :D
     - Outer convex hull -> Radius (max, min (amplitude)) 
 * Test slices instead of fixed size arrays for runtime allocation of iterations and width/height.
+* Why does the coefficient seem to be capped at 1.37~? 
 * More than 3 histograms?
     - Only makes sense with color spaces with more than 3 values such as cmyk?
+
+## Co-efficient
+
+The coefficient on the __real__ axis has two properties:
+
+* When larger than _1_ it twists into something looking like a set of armor.
+    - This then eventually twists into itself at around 1.37~ where it becomes only two specks of dust.
+    - It twists on two points towards the center.
+    - Try with values like: _1.01_.
+* When smaller than _1_ it works as a zoom. 
+    - On which axis? Both real and imaginary? Or only real? Not sure.  
+* When smaller than _0_ (-1.1 to 0) it spirals in on itself.
+    - It rotates on one point towards itself.
+
+The coefficient on the __imaginary__ axis has two properties:
+
+* When slightly larger than _1_ it makes the buddhabrot more ... ephemeral? Try with values like: _1.001_.
+* When smaller than _1_
+* When smaller than _0_ the right side of the brot becomes corrupted. Really cool!
+    - Try with values like: _-0.01_ and _-0.1_.
+    - With values like _-.5_ it looks like a sinking ship.
+
+Combining _both_ coefficient:
+
 
 ## Fun stuff
 
