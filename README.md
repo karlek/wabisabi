@@ -1,6 +1,6 @@
 # Wabisabi
 
-Wabisabi is a renderer of buddhabrot and it's family members. It shares it's name with a Japanese asthethic called [Wabi-sabi](https://en.wikipedia.org/wiki/Wabi-sabi). Referencing the impossibility of creating the real buddhabrot and learning to accept the beauty in reality and it's flaws. 
+Wabisabi is a renderer of buddhabrot and its family members. It shares it's name with a Japanese asthethic called [Wabi-sabi](https://en.wikipedia.org/wiki/Wabi-sabi). Referencing the impossibility of creating the real buddhabrot and learning to accept the beauty in reality and it's flaws. 
 
 ![Anti-buddhabrot](https://github.com/karlek/wabisabi/blob/master/img/anti.jpg?raw=true)
 ![Original buddhabrot](https://github.com/karlek/wabisabi/blob/master/img/original.jpg?raw=true)
