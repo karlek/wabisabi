@@ -354,9 +354,8 @@ func fillHistograms(r, g, b *Histo, workers int) {
 	share := int((tries)*width*height) / workers
 	for n := 0; n < workers; n++ {
 		// Our worker channel to send our orbits on!
-		rng := rand7i.NewComplexRNG(int64(n))
-		random := randbo.NewFrom(rand.NewSource(int64(n)))
-		go arbitrary(r, g, b, &rng, random, share, wg)
+		rng := rand7i.NewComplexRNG(int64(n + 1))
+		go arbitrary(r, g, b, &rng, share, wg)
 	}
 	wg.Wait()
 	bar.SetMax()
