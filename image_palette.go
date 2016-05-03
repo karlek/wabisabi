@@ -84,7 +84,10 @@ func createPalette(img image.Image, limit int) GradientTable {
 	for i := 0; i <= bounds.Max.X; i++ {
 		for j := 0; j <= bounds.Max.Y; j++ {
 			pixel := img.At(i, j)
-			red, green, blue, _ := pixel.RGBA()
+			red, green, blue, alpha := pixel.RGBA()
+			if alpha == 0 {
+				continue
+			}
 			rgbTuple := []int{int(red / 255), int(green / 255), int(blue / 255)}
 			colorName := FindClosestColor(rgbTuple, "css3")
 			// colorName := hash(pixel.RGBA())
