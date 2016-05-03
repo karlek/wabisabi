@@ -1,6 +1,6 @@
 package main
 
-import "math"
+import "image"
 
 // Credits: https://github.com/morcmarc/buddhabrot/blob/master/buddhabrot.go
 func isInBulb(c complex128) bool {
@@ -148,25 +148,42 @@ func primitive(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 	return
 }
 
-// abs returns the absolute value of a complex point. Is used for experimenting
-// with new complex functions.
 func abs(c complex128) complex128 {
-	return complex(math.Abs(real(c)), math.Abs(imag(c)))
+	return complex(real(c), imag(c))
+	// return complex(imag(c)-real(c), real(c)*imag(c))
 }
 
-// registerOrbits register the points in an orbit in r,g,b channels depending on
-// it's iteration count. 
+// registerOrbits register the points in an orbit in r, g, b channels depending
+// on it's iteration count.
 func registerOrbits(points *[iterations]complex128, it int, r, g, b *Histo) {
+	// Orbits with low iteration count will be ignored to reduce noise.
+	if it < 100 {
+		return
+	}
 	// Get color from gradient based on iteration count of the orbit.
 	red, green, blue := grad.Get(it % len(grad))
 	for _, z := range points[:it] {
+		// Convert the complex point to a pixel coordinate.
 		p := ptoc(z)
 		// Ignore points outside image.
 		if p.X >= width || p.Y >= height || p.X < 0 || p.Y < 0 {
 			continue
 		}
-		r[p.X][p.Y] += float64(red)
-		g[p.X][p.Y] += float64(green)
-		b[p.X][p.Y] += float64(blue)
+		r[p.X][p.Y] += red
+		g[p.X][p.Y] += green
+		b[p.X][p.Y] += blue
 	}
+}
+
+// ptoc converts a point from the complex function to a pixel coordinate.
+//
+// Stands for point to coordinate, which is actually a really shitty name
+// because of it's ambiguous character haha.
+func ptoc(c complex128) (p image.Point) {
+	r, i := real(c), imag(c)
+
+	p.X = int((float64(width)/2.5)*zoom*(r+offsetReal) + float64(width)/2.0)
+	p.Y = int((float64(height)/2.5)*zoom*(i+offsetImag) + float64(height)/2.0)
+
+	return p
 }

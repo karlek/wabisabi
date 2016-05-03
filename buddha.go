@@ -196,121 +196,20 @@ func fillHistograms(r, g, b *Histo, workers int) {
 // arbitrary will try to find orbits in the complex function by choosing a
 // random point in it's domain and iterating it a number of times to see if it
 // converges or diverges.
-func arbitrary(r, g, b *Histo, rng *rand7i.ComplexRNG, random io.Reader, tries int, wg *sync.WaitGroup) {
+func arbitrary(r, g, b *Histo, rng *rand7i.ComplexRNG, tries int, wg *sync.WaitGroup) {
 	var potentials [iterations]complex128
 	for i := 0; i < tries; i++ {
 		// Increase progress bar.
 		bar.Inc()
 
 		// Our random point which, hopefully, will create an orbit!
-		c := randomPoint(rng, random)
+		c := rng.Complex128Go()
 		brot(c, &potentials, r, g, b)
 	}
 	wg.Done()
 }
 
-func randomPoint(rng *rand7i.ComplexRNG, random io.Reader) complex128 {
-	// return complex(4*randfloat(random)-2, 4*randfloat(random)-2)
-	return rng.Complex128Go()
-}
-
 // getFunctionName returns the name of a function as string.
 func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
-}
-
-func trap(img *image.RGBA, trapPath string, r, g, b *Histo) {
-
-}
-
-func plot(img *image.RGBA, r, g, b *Histo) {
-	// The highest number orbits passing through a point.
-	rMax, gMax, bMax := max(r), max(g), max(b)
-	logrus.Println("[i] Histo:", rMax, gMax, bMax)
-	logrus.Printf("[i] Function: %s, factor: %.2f, exposure: %.2f", getFunctionName(f), factor, exposure)
-	// We iterate over every point in our histogram to color scale and plot
-	// them.
-	wg := new(sync.WaitGroup)
-	wg.Add(len(r))
-	for x, col := range r {
-		go plotCol(wg, x, &col, img, r, g, b, rMax, bMax, gMax)
-	}
-	wg.Wait()
-}
-
-func plotCol(wg *sync.WaitGroup, x int, col *[height]float64, img *image.RGBA, r, g, b *Histo, rMax, bMax, gMax float64) {
-	for y := range col {
-		// We skip to plot the black points for faster rendering. A side
-		// effect is that rendering png images will have a transparent
-		// background.
-		if r[x][y] == 0 &&
-			g[x][y] == 0 &&
-			b[x][y] == 0 {
-			continue
-		}
-		c := color.RGBA{
-			uint8(value(r[x][y], rMax)),
-			uint8(value(g[x][y], gMax)),
-			uint8(value(b[x][y], bMax)),
-			255}
-		// We flip x <=> y to rotate the image to an upright position.
-		img.Set(y, x, c)
-	}
-	wg.Done()
-}
-
-func exp(x float64) float64 {
-	return (1 - math.Exp(-factor*x))
-}
-func log(x float64) float64 {
-	return math.Log1p(factor * x)
-}
-func sqrt(x float64) float64 {
-	return math.Sqrt(factor * x)
-}
-func lin(x float64) float64 {
-	return x
-}
-func value(v, max float64) float64 {
-	return math.Min(f(v)*scale(max), 255)
-}
-func scale(max float64) float64 {
-	return (255 * exposure) / f(max)
-}
-
-// ptoc converts a point from the complex function to a pixel coordinate.
-//
-// Stands for point to coordinate, which is actually a really shitty name
-// because of it's ambiguous character haha.
-func ptoc(c complex128) (p image.Point) {
-	r, i := real(c), imag(c)
-
-	p.X = int((zoom*float64(width)/2.8)*(r+real(offset)) + float64(width)/2.0)
-	p.Y = int((zoom*float64(height)/2.8)*(i+imag(offset)) + float64(height)/2.0)
-
-	return p
-}
-
-// render creates an output image file.
-func render(img image.Image, filename string) (err error) {
-	enc := func(img image.Image, filename string) (err error) {
-		file, err := os.Create(filename)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		if filePng {
-			return png.Encode(file, img)
-		}
-		return jpeg.Encode(file, img, &jpeg.Options{Quality: 76})
-	}
-
-	if filePng {
-		filename += ".png"
-	} else if fileJpg {
-		filename += ".jpg"
-	}
-	logrus.Println("[!] Encoding:", filename)
-	defer logrus.Println("[!] Done :D")
-	return enc(img, filename)
 }
