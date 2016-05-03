@@ -45,7 +45,7 @@ func escaped(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 
 	// See if the complex function diverges before we reach our iteration count.
 	for i := 0; i < iterations; i++ {
-		z = complex(coefficient, 0)*complex(real(z), imag(z))*complex(real(z), imag(z)) + complex(coefficient, 0)*complex(real(c), imag(c))
+		z = coefficient*complex(real(z), imag(z))*complex(real(z), imag(z)) + coefficient*complex(real(c), imag(c))
 
 		// Cycle-detection (See algorithmic explanation in README.md).
 		if (i-1)&i == 0 && i > 1 {
@@ -56,10 +56,6 @@ func escaped(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 		// This point diverges, so we all the preceeding points are interesting
 		// and will be registered.
 		if x, y := real(z), imag(z); x*x+y*y >= bailout {
-			// Orbits with low iteration count will be ignored to reduce noise.
-			if num < 1000 {
-				return
-			}
 			registerOrbits(points, num, r, g, b)
 			return
 		}
@@ -85,7 +81,7 @@ func converged(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 
 	// See if the complex function diverges before we reach our iteration count.
 	for i := 0; i < iterations; i++ {
-		z = complex(coefficient, 0)*complex(real(z), imag(z))*complex(real(z), imag(z)) + complex(coefficient, 0)*complex(real(c), imag(c))
+		z = coefficient*complex(real(z), imag(z))*complex(real(z), imag(z)) + coefficient*complex(real(c), imag(c))
 
 		// Cycle-detection (See algorithmic explanation in README.md).
 		if (i-1)&i == 0 && i > 1 {
@@ -123,7 +119,7 @@ func primitive(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 
 	// See if the complex function diverges before we reach our iteration count.
 	for i := 0; i < iterations; i++ {
-		z = complex(coefficient, 0)*complex(real(z), imag(z))*complex(real(z), imag(z)) + complex(coefficient, 0)*complex(real(c), imag(c))
+		z = coefficient*complex(real(z), imag(z))*complex(real(z), imag(z)) + coefficient*complex(real(c), imag(c))
 
 		// Cycle-detection (See algorithmic explanation in README.md).
 		if (i-1)&i == 0 && i > 1 {
@@ -150,7 +146,6 @@ func primitive(c complex128, points *[iterations]complex128, r, g, b *Histo) {
 
 func abs(c complex128) complex128 {
 	return complex(real(c), imag(c))
-	// return complex(imag(c)-real(c), real(c)*imag(c))
 }
 
 // registerOrbits register the points in an orbit in r, g, b channels depending
