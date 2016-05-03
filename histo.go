@@ -8,6 +8,8 @@ import (
 // Histo is a histogram of buddhabrot divergent orbits.
 type Histo [width][height]float64
 
+// max finds the highest value in the histogram. Used for color scaling
+// algorithms.
 func max(v *Histo) (max float64) {
 	max = -1
 	for _, row := range v {
@@ -20,7 +22,7 @@ func max(v *Histo) (max float64) {
 	return max
 }
 
-//
+// gobHisto saves histograms to a gob file for future re-rendering.
 func gobHisto(vs ...*Histo) (err error) {
 	file, err := os.Create("r-g-b.gob")
 	if err != nil {
@@ -37,6 +39,7 @@ func gobHisto(vs ...*Histo) (err error) {
 	return nil
 }
 
+// loadHisto loads a previously calculated histogram file for re-rendering.
 func loadHisto() (r, g, b *Histo, err error) {
 	file, err := os.Open("r-g-b.gob")
 	if err != nil {
