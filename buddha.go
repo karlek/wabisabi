@@ -116,6 +116,12 @@ func buddha() (err error) {
 	// Initializing our image and arrays in memory.
 	img, r, g, b := initialize()
 
+	// Black color the png since alpha calculation takes ages.
+	if filePng {
+		black := image.NewUniform(color.RGBA{0, 0, 0, 255})
+		draw.Draw(img, img.Bounds(), black, image.ZP, draw.Over)
+	}
+
 	// Load previous histograms and render the image with, maybe, new options.
 	if load {
 		logrus.Println("[-] Loading visits.")
