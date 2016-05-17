@@ -34,6 +34,7 @@ $ wabisabi
 * Zooming.
 * Multiple CPU support. 
 * Hand optimized assembly(!) for generating random complex points. Thank you [7i](https://github.com/7i)!
+* Plot Calculation-Paths. Credits to Raka Jovanovic and Milan Tuba (ISSN: 1109-2750).
 
 >It should be noted that speed in random number generating algorithms competes with the necessity of having a random distribution. If you know of a way to benchmark randomness as well as speed, please create an issue!
 

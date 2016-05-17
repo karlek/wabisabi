@@ -39,6 +39,8 @@ var (
 	anti bool
 	// Should we calculate the primitive-buddhabrot instead?
 	primitiveFlag bool
+	// Should we calculate the calculation path?
+	calculationFlag bool
 	// Number of orbits we'll try to find.
 	tries float64
 	// Bailout value; we stop calculating after this value.
@@ -84,6 +86,7 @@ func init() {
 	flag.BoolVar(&save, "save", false, "save orbits.")
 	flag.BoolVar(&anti, "anti", false, "plot anti-buddhabrot orbits.")
 	flag.BoolVar(&primitiveFlag, "primitive", false, "plot primitive buddhabrot orbits.")
+	flag.BoolVar(&calculationFlag, "calcpath", false, "plot the calculation path.")
 	flag.BoolVar(&fileJpg, "jpg", true, "save as jpeg.")
 	flag.BoolVar(&filePng, "png", false, "save as png.")
 	flag.BoolVar(&zrziFlag, "zrzi", false, "Render the Zr, Zi capital plane. (default)")
@@ -140,6 +143,8 @@ func parseAdvancedFlags() {
 		brot = converged
 	} else if primitiveFlag {
 		brot = primitive
+	} else if calculationFlag {
+		brot = calculationPath
 	} else {
 		brot = escaped
 	}
