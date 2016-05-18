@@ -266,7 +266,7 @@ func registerPaths(points *[iterations]complex128, it int, r, g, b *Histo) {
 	red, green, blue := grad.Get(it % len(grad))
 	first := true
 	var last image.Point
-	bresPoints := make([]image.Point, 0, 80)
+	bresPoints := make([]image.Point, 0, intermediaryPoints)
 	for _, z := range points[:it] {
 		// Convert the complex point to a pixel coordinate.
 		p := ptoc(z)
