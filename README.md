@@ -9,6 +9,10 @@ _The name will probably be changed to it's lovely nickname wasabi anytime soon h
 <img src=https://github.com/karlek/wabisabi/blob/master/img/original.jpg?raw=true width=49.9%>
 <img src=https://github.com/karlek/wabisabi/blob/master/img/anti.jpg?raw=true width=49.9%>
 
+> An image of the calculation path rendering technique.
+
+<img src=https://github.com/karlek/wabisabi/blob/master/img/calc.jpg?raw=true width=49.9%>
+
 ## Install
 
 ```fish
