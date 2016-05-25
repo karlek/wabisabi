@@ -117,7 +117,7 @@ func init() {
 	flag.Float64Var(&factor, "factor", 0.1, "factor")
 	flag.Int64Var(&seed, "seed", time.Now().UnixNano(), "random seed")
 	flag.Int64Var(&intermediaryPoints, "points", 80, "maximum number of intermediary points to draw between to mandelbrot iterations.")
-	flag.IntVar(&colors, "colors", 5, "number of colors to use in the gradient. Also the number of colors to take from a supplied image.")
+	flag.IntVar(&colors, "colors", 3, "number of colors to use in the gradient. Also the number of colors to take from a supplied image.")
 	flag.Usage = usage
 }
 

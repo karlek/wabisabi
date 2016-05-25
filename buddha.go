@@ -19,16 +19,17 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/karlek/profile"
 	"github.com/karlek/progress/barcli"
+	"github.com/karlek/vanilj/fractal"
 	"github.com/lucasb-eyer/go-colorful"
 )
 
 const (
 	// Width of the image.
-	width = 4000
+	width = 4096
 	// Height of the image.
-	height = 4000
+	height = 4096
 	// Number of iterations to compute before we assume that we converge.
-	iterations = 100000
+	iterations = 2000
 	wRatio     = float64(width) / float64(height)
 	hRatio     = float64(height) / float64(width)
 )
@@ -139,12 +140,15 @@ func buddha() (err error) {
 	// image are extracted.
 	if palettePath == "" {
 		logrus.Println("[.] Using random gradient.")
-		for i := 0; i < colors; i++ {
-			grad.AddColor(colorful.Color{
-				rand.Float64(),
-				rand.Float64(),
-				rand.Float64()})
-		}
+		grad.AddColor(colorful.Color{1, 0, 0})
+		grad.AddColor(colorful.Color{0, 1, 0})
+		grad.AddColor(colorful.Color{0, 0, 1})
+		// for i := 0; i < colors; i++ {
+		// 	grad.AddColor(colorful.Color{
+		// 		rand.Float64(),
+		// 		rand.Float64(),
+		// 		rand.Float64()})
+		// }
 	} else {
 		logrus.Println("[.] Stealing palette from image.")
 		stealPalette(palettePath)
@@ -152,7 +156,7 @@ func buddha() (err error) {
 
 	logrus.Println("[-] Calculating visited points.")
 	fillHistograms(r, g, b, runtime.NumCPU())
-
+	logrus.Println("[-] Keys", fractal.Keys)
 	// Saving the histograms for future re-rendering.
 	if save {
 		logrus.Println("[i] Saving r, g, b channels")

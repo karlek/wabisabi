@@ -1,6 +1,10 @@
 package main
 
-import "image"
+import (
+	"image"
+
+	"github.com/karlek/vanilj/fractal"
+)
 
 // Credits: https://github.com/morcmarc/buddhabrot/blob/master/buddhabrot.go
 func isInBulb(c complex128) bool {
@@ -272,7 +276,7 @@ func registerPaths(points *[iterations]complex128, it int, r, g, b *Histo) {
 		return
 	}
 	// Get color from gradient based on iteration count of the orbit.
-	red, green, blue := grad.Get(it % len(grad))
+	red, green, blue := grad.Get(it, iterations, fractal.IterationCount)
 	first := true
 	var last image.Point
 	bresPoints := make([]image.Point, 0, intermediaryPoints)
