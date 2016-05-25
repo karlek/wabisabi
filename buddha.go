@@ -161,6 +161,13 @@ func buddha() (err error) {
 		}
 	}
 
+	if importanceMap {
+		logrus.Println("[-] Plotting importance")
+		if err := plotImp(); err != nil {
+			return err
+		}
+	}
+
 	// Color scale the histograms and plot to the brot.
 	logrus.Println("[/] Creating image.")
 	if trapPath == "" {

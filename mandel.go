@@ -235,6 +235,8 @@ func Bresenham(start, end image.Point, points []image.Point) []image.Point {
 	return points
 }
 
+var importance Histo
+
 // registerOrbits register the points in an orbit in r, g, b channels depending
 // on it's iteration count.
 func registerOrbits(points *[iterations]complex128, it int, r, g, b *Histo) {
@@ -243,7 +245,8 @@ func registerOrbits(points *[iterations]complex128, it int, r, g, b *Histo) {
 		return
 	}
 	// Get color from gradient based on iteration count of the orbit.
-	red, green, blue := grad.Get(it % len(grad))
+	red, green, blue := grad.Get(it, iterations, fractal.IterationCount)
+	imp := 0.0
 	for _, z := range points[:it] {
 		// Convert the complex point to a pixel coordinate.
 		p := ptoc(z)
@@ -254,7 +257,13 @@ func registerOrbits(points *[iterations]complex128, it int, r, g, b *Histo) {
 		r[p.X][p.Y] += red
 		g[p.X][p.Y] += green
 		b[p.X][p.Y] += blue
+		imp++
 	}
+	p := ptoc(points[0])
+	if p.X >= width || p.Y >= height || p.X < 0 || p.Y < 0 {
+		return
+	}
+	importance[p.X][p.Y] += imp / float64(it)
 }
 
 func registerPaths(points *[iterations]complex128, it int, r, g, b *Histo) {

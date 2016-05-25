@@ -80,6 +80,9 @@ var (
 	crziFlag bool
 	ziciFlag bool
 
+	// Should we plot the importance map?
+	importanceMap bool
+
 	// Number of colors in the gradient to color the image.
 	colors int
 )
@@ -98,6 +101,7 @@ func init() {
 	flag.BoolVar(&crciFlag, "crci", false, "Render the Cr, Ci capital plane.")
 	flag.BoolVar(&crziFlag, "crzi", false, "Render the Cr, Zi capital plane.")
 	flag.BoolVar(&ziciFlag, "zici", false, "Render the Zi, Ci capital plane.")
+	flag.BoolVar(&importanceMap, "important", false, "Render importance sampling map.")
 	flag.StringVar(&fun, "function", "exp", "color scaling function")
 	flag.StringVar(&out, "out", "a", "output filename. Image file type will be suffixed.")
 	flag.StringVar(&palettePath, "palette", "", "path to image to be used as color palette")

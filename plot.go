@@ -16,6 +16,22 @@ func trap(img *image.RGBA, trapPath string, r, g, b *Histo) {
 
 }
 
+func plotImp() (err error) {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	impMax := max(&importance)
+	for x, col := range importance {
+		for y, v := range col {
+			if importance[x][y] == 0 {
+				continue
+			}
+			c := uint8(value(v, impMax))
+			img.SetRGBA(x, y, color.RGBA{c, c, c, 255})
+		}
+	}
+	return render(img, "importance")
+}
+
 // plot visualizes the histograms values as an image. It equalizes the
 // histograms with a color scaling function to emphazise hidden features.
 func plot(img *image.RGBA, r, g, b *Histo) {
