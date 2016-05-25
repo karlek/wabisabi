@@ -60,6 +60,7 @@ z = |z*z| + c
 complex(real(c), -imag(c))
 complex(-math.Abs(real(c)), imag(c))
 complex(math.Abs(real(c)), imag(c))
+complex(imag(c)-real(c), real(c)*imag(c))
 ```
 
 ### Z<sub>0</sub>
