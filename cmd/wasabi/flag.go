@@ -7,7 +7,10 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/karlek/vanilj/fractal"
+	"github.com/karlek/wabisabi/coloring"
+	"github.com/karlek/wabisabi/fractal"
+	"github.com/karlek/wabisabi/mandel"
+	"github.com/karlek/wabisabi/plot"
 )
 
 var (
@@ -21,9 +24,9 @@ var (
 	// Factor to modify the function granularity.
 	factor float64
 	// The function which scales the color space.
-	f func(float64) float64
+	f func(float64, float64) float64
 	// The function to calculate (anti-/buddhabrot).
-	brot func(complex128, *[iterations]complex128, *Histo, *Histo, *Histo)
+	brot func(complex128, []complex128, *fractal.Fractal)
 	// Choose which plane to explore.
 	plane func(complex128, complex128) complex128
 	// Temporary string to parse the _f_ function.
@@ -65,7 +68,7 @@ var (
 	zoom float64
 
 	// Our gradient to use when plotting the image.
-	grad fractal.Gradient
+	grad coloring.Gradient
 
 	// Save as jpg?
 	fileJpg bool
@@ -85,6 +88,13 @@ var (
 
 	// Number of colors in the gradient to color the image.
 	colors int
+
+	// Number of iterations to track.
+	iterations int64
+
+	// Width and height of the final render.
+	width  int
+	height int
 )
 
 func init() {
@@ -106,7 +116,7 @@ func init() {
 	flag.StringVar(&out, "out", "a", "output filename. Image file type will be suffixed.")
 	flag.StringVar(&palettePath, "palette", "", "path to image to be used as color palette")
 	flag.StringVar(&trapPath, "trap", "", "orbit trap path to image.")
-	flag.Float64Var(&tries, "tries", 1, "number of orbits attempts")
+	flag.Float64Var(&tries, "tries", 1, "number (width*height) of orbits attempts")
 	flag.Float64Var(&realCoefficient, "realco", 1, "real coefficient for the complex function.")
 	flag.Float64Var(&imagCoefficient, "imagco", 0, "imag coefficient for the complex function.")
 	flag.Float64Var(&bailout, "bail", 4, "bailout value")
@@ -114,10 +124,13 @@ func init() {
 	flag.Float64Var(&offsetImag, "imag", 0, "offsetImag")
 	flag.Float64Var(&exposure, "exposure", 1.0, "over exposure")
 	flag.Float64Var(&zoom, "zoom", 1, "zoom")
-	flag.Float64Var(&factor, "factor", 0.1, "factor")
+	flag.Float64Var(&factor, "factor", -1, "factor")
 	flag.Int64Var(&seed, "seed", time.Now().UnixNano(), "random seed")
 	flag.Int64Var(&intermediaryPoints, "points", 80, "maximum number of intermediary points to draw between to mandelbrot iterations.")
+	flag.Int64Var(&iterations, "iterations", 1e6, "number of iterations to track.")
 	flag.IntVar(&colors, "colors", 3, "number of colors to use in the gradient. Also the number of colors to take from a supplied image.")
+	flag.IntVar(&width, "width", 1024, "width of the final render.")
+	flag.IntVar(&height, "height", 1024, "height of the final render.")
 	flag.Usage = usage
 }
 
@@ -131,13 +144,13 @@ func usage() {
 func parseFunctionFlag() {
 	switch fun {
 	case "exp":
-		f = exp
+		f = plot.Exp
 	case "log":
-		f = log
+		f = plot.Log
 	case "sqrt":
-		f = sqrt
+		f = plot.Sqrt
 	case "lin":
-		f = lin
+		f = plot.Lin
 	default:
 		logrus.Fatalln("invalid color scaling function:", fun)
 	}
@@ -146,16 +159,17 @@ func parseFunctionFlag() {
 // parseAdvancedFlags parses flags which can't be represented with the flag
 // package.
 func parseAdvancedFlags() {
-	// Choose buddhabrot mode.
-	if anti {
-		brot = converged
-	} else if primitiveFlag {
-		brot = primitive
-	} else if calculationFlag {
-		brot = calculationPath
-	} else {
-		brot = escaped
-	}
+	// // Choose buddhabrot mode.
+	// if anti {
+	// 	brot = mandel.Converged
+	// } else if primitiveFlag {
+	// 	brot = mandel.Primitive
+	// } else if calculationFlag {
+	// 	brot = mandel.CalculationPath
+	// } else {
+	// 	brot = mandel.Escaped
+	// }
+	brot = mandel.Escaped
 
 	// Parse the _function_ argument to a function pointer.
 	parseFunctionFlag()
