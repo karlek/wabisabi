@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"flag"
 	"fmt"
-	"image"
 	_ "image/jpeg"
 	_ "image/png"
 	"os"
@@ -38,26 +37,6 @@ func main() {
 	if factor == -1 {
 		factor = 1 / tries
 	}
-	settings := logrus.Fields{
-		"factor":     factor,
-		"f":          getFunctionName(f),
-		"out":        out,
-		"load":       load,
-		"save":       save,
-		"anti":       anti,
-		"brot":       getFunctionName(brot),
-		"palette":    palettePath,
-		"tries":      tries,
-		"bailout":    bailout,
-		"offset":     offset,
-		"exposure":   exposure,
-		"width":      width,
-		"height":     height,
-		"iterations": iterations,
-		"zoom":       zoom,
-		"seed":       seed,
-	}
-	logrus.WithFields(settings).Println("Config")
 
 	// Handle interrupts as fails, so we can chain with an image viewer.
 	inter := make(chan os.Signal, 1)
@@ -118,27 +97,45 @@ func buddha() (err error) {
 	method := coloring.NewColoring(coloring.IterationCount, grad, ranges)
 
 	logrus.Println("[.] Initializing.")
-	frac := fractal.New(width, height, iterations, method, coefficient, bailout, plane, zoom, offsetReal, offsetImag, seed)
+	var frac *fractal.Fractal
 	ren := render.New(width, height, f, factor, exposure)
 	// Load previous histograms and render the image with, maybe, new options.
+
+	settings := logrus.Fields{
+		"factor":     factor,
+		"f":          getFunctionName(f),
+		"out":        out,
+		"load":       load,
+		"save":       save,
+		"anti":       anti,
+		"brot":       getFunctionName(brot),
+		"palette":    palettePath,
+		"tries":      tries,
+		"bailout":    bailout,
+		"offset":     offset,
+		"exposure":   exposure,
+		"width":      width,
+		"height":     height,
+		"iterations": iterations,
+		"zoom":       zoom,
+		"seed":       seed,
+	}
+	logrus.WithFields(settings).Println("Config")
 	if load {
 		logrus.Println("[-] Loading visits.")
-		frac, err = loadFrac()
+		frac, ren, err = loadArt()
 		if err != nil {
 			return err
 		}
-		plot.Plot(ren, frac)
-		plot.Render(ren, filePng, fileJpg, out)
-		fmt.Println(histo.Max(frac.R), histo.Max(frac.G), histo.Max(frac.B))
-		return nil
+		fmt.Println(ren)
+	} else {
+		// Fill our histogram bins of the orbits.
+		frac = fractal.New(width, height, iterations, method, coefficient, bailout, plane, zoom, offsetReal, offsetImag, seed)
+		fillHistograms(frac, runtime.NumCPU())
 	}
-
-	// Fill our histogram bins of the orbits.
-	fillHistograms(frac, ren, runtime.NumCPU())
-
 	if save {
 		logrus.Println("[i] Saving r, g, b channels")
-		if err := saveFrac(frac); err != nil {
+		if err := saveArt(frac, ren); err != nil {
 			return err
 		}
 	}
@@ -149,8 +146,8 @@ func buddha() (err error) {
 		return nil
 	}
 	// Plot and render to file.
-	plot.Plot(f, img, factor, exposure, frac)
-	plot.Render(img, false, true, out)
+	plot.Plot(ren, frac)
+	plot.Render(ren.Image, filePng, fileJpg, out)
 	sum := 0
 	for _, k := range frac.Method.Keys {
 		sum += k
@@ -164,7 +161,7 @@ func buddha() (err error) {
 
 // fillHistograms creates a number of workers which finds orbits and stores
 // their points in a histogram.
-func fillHistograms(frac *fractal.Fractal, img *image.RGBA, workers int) {
+func fillHistograms(frac *fractal.Fractal, workers int) {
 	bar, _ := barcli.New(int(tries * float64(width*height)))
 	go func(bar *barcli.Bar) {
 		for {
@@ -181,7 +178,7 @@ func fillHistograms(frac *fractal.Fractal, img *image.RGBA, workers int) {
 	for n := 0; n < workers; n++ {
 		// Our worker channel to send our orbits on!
 		rng := rand7i.NewComplexRNG(int64(n+1) + seed)
-		go arbitrary(frac, &rng, share, wg, img, bar)
+		go arbitrary(frac, &rng, share, wg, bar)
 	}
 	wg.Wait()
 	bar.SetMax()
@@ -191,7 +188,7 @@ func fillHistograms(frac *fractal.Fractal, img *image.RGBA, workers int) {
 // arbitrary will try to find orbits in the complex function by choosing a
 // random point in it's domain and iterating it a number of times to see if it
 // converges or diverges.
-func arbitrary(frac *fractal.Fractal, rng *rand7i.ComplexRNG, share int, wg *sync.WaitGroup, img *image.RGBA, bar *barcli.Bar) {
+func arbitrary(frac *fractal.Fractal, rng *rand7i.ComplexRNG, share int, wg *sync.WaitGroup, bar *barcli.Bar) {
 	var potentials = make([]complex128, iterations)
 	z := complex(0, 0)
 	for i := 0; i < share; i++ {
@@ -213,7 +210,7 @@ func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }
 
-func saveFrac(frac *fractal.Fractal) (err error) {
+func saveArt(frac *fractal.Fractal, ren *render.Render) (err error) {
 	file, err := os.Create("r-g-b.gob")
 	if err != nil {
 		return err
@@ -225,19 +222,39 @@ func saveFrac(frac *fractal.Fractal) (err error) {
 	if err != nil {
 		return err
 	}
+	err = enc.Encode(ren)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func loadFrac() (frac *fractal.Fractal, err error) {
+func loadArt() (frac *fractal.Fractal, ren *render.Render, err error) {
 	file, err := os.Open("r-g-b.gob")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer file.Close()
 	gob.Register(colorful.Color{})
 	dec := gob.NewDecoder(file)
 	if err := dec.Decode(&frac); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return frac, nil
+	if err := dec.Decode(&ren); err != nil {
+		return nil, nil, err
+	}
+
+	// Work around for function pointers and gobbing.
+	switch ren.FName {
+	case "github.com/karlek/wabisabi/plot.Log":
+		ren.F = plot.Log
+	case "github.com/karlek/wabisabi/plot.Exp":
+		ren.F = plot.Exp
+	case "github.com/karlek/wabisabi/plot.Lin":
+		ren.F = plot.Lin
+	case "github.com/karlek/wabisabi/plot.Sqrt":
+		ren.F = plot.Sqrt
+	}
+
+	return frac, ren, nil
 }

@@ -1,6 +1,10 @@
 package render
 
-import "image"
+import (
+	"image"
+	"reflect"
+	"runtime"
+)
 
 type Render struct {
 	Image    *image.RGBA
@@ -8,10 +12,15 @@ type Render struct {
 	Exposure float64
 	Points   int
 	F        func(float64, float64) float64
+	FName    string
 }
 
 // New returns a new render for fractals.
 func New(width, height int, f func(float64, float64) float64, factor, exposure float64) *Render {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	return &Render{Image: img, Factor: factor, Exposure: exposure}
+	return &Render{Image: img, F: f, FName: getFunctionName(f), Factor: factor, Exposure: exposure}
+}
+
+func getFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }

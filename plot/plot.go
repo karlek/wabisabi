@@ -14,6 +14,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/karlek/wabisabi/fractal"
 	"github.com/karlek/wabisabi/histo"
+	"github.com/karlek/wabisabi/render"
 )
 
 var (
@@ -24,28 +25,28 @@ func Trap(img *image.RGBA, trapPath string, r, g, b histo.Histo) {
 
 }
 
-func PlotImp(width, height int, filePng, fileJpg bool) (err error) {
-	fscale := func(v, max float64) float64 {
-		return math.Min(((1 - math.Exp(-1*v)) / (1 - math.Exp(-1*max)) * 255), 255)
-	}
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+// func PlotImp(width, height int, filePng, fileJpg bool) (err error) {
+// 	fscale := func(v, max float64) float64 {
+// 		return math.Min(((1 - math.Exp(-1*v)) / (1 - math.Exp(-1*max)) * 255), 255)
+// 	}
+// 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
-	impMax := histo.Max(importance)
-	for x, col := range importance {
-		for y, v := range col {
-			if importance[x][y] == 0 {
-				continue
-			}
-			c := uint8(fscale(v, impMax))
-			img.SetRGBA(y, x, color.RGBA{c, c, c, 255})
-		}
-	}
-	return Render(img, filePng, fileJpg, "importance")
-}
+// 	impMax := histo.Max(importance)
+// 	for x, col := range importance {
+// 		for y, v := range col {
+// 			if importance[x][y] == 0 {
+// 				continue
+// 			}
+// 			c := uint8(fscale(v, impMax))
+// 			img.SetRGBA(y, x, color.RGBA{c, c, c, 255})
+// 		}
+// 	}
+// 	return Render(img, filePng, fileJpg, "importance")
+// }
 
 // Plot visualizes the histograms values as an image. It equalizes the
 // histograms with a color scaling function to emphazise hidden features.
-func Plot(f func(float64, float64) float64, img *image.RGBA, factor, exposure float64, frac *fractal.Fractal) {
+func Plot(ren *render.Render, frac *fractal.Fractal) {
 	// The highest number orbits passing through a point.
 	rMax, gMax, bMax := histo.Max(frac.R), histo.Max(frac.G), histo.Max(frac.B)
 	// We iterate over every point in our histogram to color scale and plot
@@ -53,14 +54,14 @@ func Plot(f func(float64, float64) float64, img *image.RGBA, factor, exposure fl
 	wg := new(sync.WaitGroup)
 	wg.Add(len(frac.R))
 	for x, col := range frac.R {
-		go plotCol(f, wg, x, col, img, frac, factor, exposure, rMax, bMax, gMax)
+		go plotCol(wg, x, col, ren, frac, rMax, bMax, gMax)
 	}
 	wg.Wait()
 }
 
 // plotCol plots a column of pixels. The RGB-value of the pixel is based on the
 // frequency in the histogram. Higher value equals brighter color.
-func plotCol(f func(float64, float64) float64, wg *sync.WaitGroup, x int, col []float64, img *image.RGBA, frac *fractal.Fractal, factor, exposure, rMax, bMax, gMax float64) {
+func plotCol(wg *sync.WaitGroup, x int, col []float64, ren *render.Render, frac *fractal.Fractal, rMax, bMax, gMax float64) {
 	for y := range col {
 		// We skip to plot the black points for faster rendering. A side
 		// effect is that rendering png images will have a transpafract
@@ -71,12 +72,12 @@ func plotCol(f func(float64, float64) float64, wg *sync.WaitGroup, x int, col []
 			continue
 		}
 		c := color.RGBA{
-			uint8(value(f, frac.R[x][y], rMax, factor, exposure)),
-			uint8(value(f, frac.G[x][y], gMax, factor, exposure)),
-			uint8(value(f, frac.B[x][y], bMax, factor, exposure)),
+			uint8(value(ren.F, frac.R[x][y], rMax, ren.Factor, ren.Exposure)),
+			uint8(value(ren.F, frac.G[x][y], gMax, ren.Factor, ren.Exposure)),
+			uint8(value(ren.F, frac.B[x][y], bMax, ren.Factor, ren.Exposure)),
 			255}
 		// We flip x <=> y to rotate the image to an upright position.
-		img.SetRGBA(y, x, c)
+		ren.Image.SetRGBA(y, x, c)
 	}
 	wg.Done()
 }
