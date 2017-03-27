@@ -26,7 +26,7 @@ var (
 	// The function which scales the color space.
 	f func(float64, float64) float64
 	// The function to calculate (anti-/buddhabrot).
-	brot func(complex128, []complex128, *fractal.Fractal)
+	brot func(complex128, complex128, []complex128, *fractal.Fractal)
 	// Choose which plane to explore.
 	plane func(complex128, complex128) complex128
 	// Temporary string to parse the _f_ function.
@@ -160,16 +160,15 @@ func parseFunctionFlag() {
 // package.
 func parseAdvancedFlags() {
 	// // Choose buddhabrot mode.
-	// if anti {
-	// 	brot = mandel.Converged
-	// } else if primitiveFlag {
-	// 	brot = mandel.Primitive
-	// } else if calculationFlag {
-	// 	brot = mandel.CalculationPath
-	// } else {
-	// 	brot = mandel.Escaped
-	// }
-	brot = mandel.Escaped
+	if anti {
+		brot = mandel.Converged
+	} else if primitiveFlag {
+		brot = mandel.Primitive
+	} else if calculationFlag {
+		brot = mandel.CalculationPath
+	} else {
+		brot = mandel.Escaped
+	}
 
 	// Parse the _function_ argument to a function pointer.
 	parseFunctionFlag()

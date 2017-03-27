@@ -25,6 +25,7 @@ import (
 	"github.com/karlek/wabisabi/histo"
 	"github.com/karlek/wabisabi/mandel"
 	"github.com/karlek/wabisabi/plot"
+	"github.com/karlek/wabisabi/render"
 )
 
 func main() {
@@ -78,51 +79,66 @@ func buddha() (err error) {
 	// grad.AddColor(colorful.Color{0.02, 0.01, 0.02})
 	// grad.AddColor(colorful.Color{0.0, 0.0, 0.0})
 	// grad.AddColor(colorful.Color{0.0, 0.0, 0.1})
-	// grad.AddColor(colorful.Color{0.11, 0.07, 0.08})
 	// grad.AddColor(colorful.Color{0.1, 0.1, 0.1})
 	// grad.AddColor(colorful.Color{0.3, 0.3, 0.3})
+	// grad.AddColor(colorful.Color{0.00, 0.00, 0.00})
+
+	// grad.AddColor(colorful.Color{0, 0.0, 0})
+	// grad.AddColor(colorful.Color{0.11, 0.0, 0.08})
+	// grad.AddColor(colorful.Color{0, 0.5, 1})
+	// grad.AddColor(colorful.Color{1, 0.5, 0})
+	// grad.AddColor(colorful.Color{1, 1, 1})
+
 	grad.AddColor(colorful.Color{1, 0, 0})
-	grad.AddColor(colorful.Color{0, 1, 0})
-	grad.AddColor(colorful.Color{0, 0, 1})
+	// grad.AddColor(colorful.Color{0, 0, 0})
+	grad.AddColor(colorful.Color{0, .5, 1})
+	grad.AddColor(colorful.Color{0, 0, 0})
+	// grad.AddColor(colorful.Color{.65, 1, 0})
 	grad.AddColor(colorful.Color{1, 1, 1})
+
 	ranges := []float64{
 		50.0 / float64(iterations),
-		100.0 / float64(iterations),
-		500.0 / float64(iterations),
-		2000.0 / float64(iterations),
+		// 200.0 / float64(iterations),
+		400.0 / float64(iterations),
+		// 1000.0 / float64(iterations),
+		// 2000.0 / float64(iterations),
+		20000.0 / float64(iterations),
 		// 0.005,
 		// 0.01,
 		// 0.02,
-		// 0.5,
 		// 0.1,
 		// 0.2,
 		// 0.3,
 		// 0.4,
+		0.5,
 	}
+	// xor thing
+	// orbit gradient
+	// function for iteration
 	method := coloring.NewColoring(coloring.IterationCount, grad, ranges)
 
 	logrus.Println("[.] Initializing.")
-	frac := fractal.New(width, height, iterations, method, coefficient, bailout, plane, zoom, offsetReal, offsetImag)
-	img := image.NewRGBA(image.Rect(0, 0, frac.Width, frac.Height))
+	frac := fractal.New(width, height, iterations, method, coefficient, bailout, plane, zoom, offsetReal, offsetImag, seed)
+	ren := render.New(width, height, f, factor, exposure)
 	// Load previous histograms and render the image with, maybe, new options.
 	if load {
 		logrus.Println("[-] Loading visits.")
-		frac, err := loadRen()
+		frac, err = loadFrac()
 		if err != nil {
 			return err
 		}
-		plot.Plot(img, factor, exposure, frac)
-		plot.Render(img, false, true, "/tmp/a")
+		plot.Plot(ren, frac)
+		plot.Render(ren, filePng, fileJpg, out)
 		fmt.Println(histo.Max(frac.R), histo.Max(frac.G), histo.Max(frac.B))
 		return nil
 	}
 
 	// Fill our histogram bins of the orbits.
-	fillHistograms(frac, img, runtime.NumCPU())
+	fillHistograms(frac, ren, runtime.NumCPU())
 
 	if save {
 		logrus.Println("[i] Saving r, g, b channels")
-		if err := saveRen(frac); err != nil {
+		if err := saveFrac(frac); err != nil {
 			return err
 		}
 	}
@@ -133,7 +149,7 @@ func buddha() (err error) {
 		return nil
 	}
 	// Plot and render to file.
-	plot.Plot(img, factor, exposure, frac)
+	plot.Plot(f, img, factor, exposure, frac)
 	plot.Render(img, false, true, out)
 	sum := 0
 	for _, k := range frac.Method.Keys {
@@ -177,12 +193,17 @@ func fillHistograms(frac *fractal.Fractal, img *image.RGBA, workers int) {
 // converges or diverges.
 func arbitrary(frac *fractal.Fractal, rng *rand7i.ComplexRNG, share int, wg *sync.WaitGroup, img *image.RGBA, bar *barcli.Bar) {
 	var potentials = make([]complex128, iterations)
+	z := complex(0, 0)
 	for i := 0; i < share; i++ {
 		// Increase progress bar.
 		bar.Inc()
 		// Our random point which, hopefully, will create an orbit!
+
+		// z := rng.Complex128Go()
+		// z = complex(real(z), 0)
+		// z = complex(0, imag(z))
 		c := rng.Complex128Go()
-		mandel.Escaped(c, potentials, frac)
+		brot(z, c, potentials, frac)
 	}
 	wg.Done()
 }
@@ -192,7 +213,7 @@ func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }
 
-func saveRen(ren *fractal.Fractal) (err error) {
+func saveFrac(frac *fractal.Fractal) (err error) {
 	file, err := os.Create("r-g-b.gob")
 	if err != nil {
 		return err
@@ -200,14 +221,14 @@ func saveRen(ren *fractal.Fractal) (err error) {
 	defer file.Close()
 	enc := gob.NewEncoder(file)
 	gob.Register(colorful.Color{})
-	err = enc.Encode(ren)
+	err = enc.Encode(frac)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func loadRen() (ren *fractal.Fractal, err error) {
+func loadFrac() (frac *fractal.Fractal, err error) {
 	file, err := os.Open("r-g-b.gob")
 	if err != nil {
 		return nil, err
@@ -215,8 +236,8 @@ func loadRen() (ren *fractal.Fractal, err error) {
 	defer file.Close()
 	gob.Register(colorful.Color{})
 	dec := gob.NewDecoder(file)
-	if err := dec.Decode(&ren); err != nil {
+	if err := dec.Decode(&frac); err != nil {
 		return nil, err
 	}
-	return ren, nil
+	return frac, nil
 }

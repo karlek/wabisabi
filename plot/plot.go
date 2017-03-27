@@ -17,7 +17,6 @@ import (
 )
 
 var (
-	f          = Exp
 	importance histo.Histo
 )
 
@@ -46,7 +45,7 @@ func PlotImp(width, height int, filePng, fileJpg bool) (err error) {
 
 // Plot visualizes the histograms values as an image. It equalizes the
 // histograms with a color scaling function to emphazise hidden features.
-func Plot(img *image.RGBA, factor, exposure float64, frac *fractal.Fractal) {
+func Plot(f func(float64, float64) float64, img *image.RGBA, factor, exposure float64, frac *fractal.Fractal) {
 	// The highest number orbits passing through a point.
 	rMax, gMax, bMax := histo.Max(frac.R), histo.Max(frac.G), histo.Max(frac.B)
 	// We iterate over every point in our histogram to color scale and plot
@@ -54,16 +53,16 @@ func Plot(img *image.RGBA, factor, exposure float64, frac *fractal.Fractal) {
 	wg := new(sync.WaitGroup)
 	wg.Add(len(frac.R))
 	for x, col := range frac.R {
-		go plotCol(wg, x, col, img, frac, factor, exposure, rMax, bMax, gMax)
+		go plotCol(f, wg, x, col, img, frac, factor, exposure, rMax, bMax, gMax)
 	}
 	wg.Wait()
 }
 
 // plotCol plots a column of pixels. The RGB-value of the pixel is based on the
 // frequency in the histogram. Higher value equals brighter color.
-func plotCol(wg *sync.WaitGroup, x int, col []float64, img *image.RGBA, frac *fractal.Fractal, factor, exposure, rMax, bMax, gMax float64) {
+func plotCol(f func(float64, float64) float64, wg *sync.WaitGroup, x int, col []float64, img *image.RGBA, frac *fractal.Fractal, factor, exposure, rMax, bMax, gMax float64) {
 	for y := range col {
-		// We skip to plot the black points for faster fracdering. A side
+		// We skip to plot the black points for faster rendering. A side
 		// effect is that rendering png images will have a transpafract
 		// background.
 		if frac.R[x][y] == 0 &&
@@ -72,9 +71,9 @@ func plotCol(wg *sync.WaitGroup, x int, col []float64, img *image.RGBA, frac *fr
 			continue
 		}
 		c := color.RGBA{
-			uint8(value(frac.R[x][y], rMax, factor, exposure)),
-			uint8(value(frac.G[x][y], gMax, factor, exposure)),
-			uint8(value(frac.B[x][y], bMax, factor, exposure)),
+			uint8(value(f, frac.R[x][y], rMax, factor, exposure)),
+			uint8(value(f, frac.G[x][y], gMax, factor, exposure)),
+			uint8(value(f, frac.B[x][y], bMax, factor, exposure)),
 			255}
 		// We flip x <=> y to rotate the image to an upright position.
 		img.SetRGBA(y, x, c)
@@ -103,12 +102,12 @@ func Lin(x, factor float64) float64 {
 }
 
 // value calculates the color value of the pixel.
-func value(v, max, factor, exposure float64) float64 {
-	return math.Min(f(v, factor)*scale(max, factor, exposure), 255)
+func value(f func(float64, float64) float64, v, max, factor, exposure float64) float64 {
+	return math.Min(f(v, factor)*scale(f, max, factor, exposure), 255)
 }
 
 // scale equalizes the histogram distribution for each value.
-func scale(max, factor, exposure float64) float64 {
+func scale(f func(float64, float64) float64, max, factor, exposure float64) float64 {
 	return (255 * exposure) / f(max, factor)
 }
 

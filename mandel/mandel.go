@@ -2,6 +2,7 @@ package mandel
 
 import (
 	"image"
+	"math"
 
 	"github.com/karlek/wabisabi/fractal"
 	"github.com/karlek/wabisabi/histo"
@@ -36,16 +37,15 @@ func isInBulb(c complex128) bool {
 // escaped returns all points in the domain of the complex function before
 // diverging.
 // func Escaped(plane func(complex128, complex128) complex128, c, coefficient complex128, points []complex128, iterations int64, bailout float64, width, height int, r, g, b histo.Histo) {
-func Escaped(c complex128, points []complex128, frac *fractal.Fractal) {
-	track(c, points, registerOrbits, frac)
+func Escaped(z, c complex128, points []complex128, frac *fractal.Fractal) {
+	track(z, c, points, registerOrbits, frac)
 }
 
-// func CalculationPath(plane func(complex128, complex128) complex128, c, coefficient complex128, points []complex128, iterations int64, bailout float64, width, height int, r, g, b histo.Histo) {
-// 	track(plane, registerPaths, c, coefficient, points, iterations, bailout, width, height, r, g, b)
-// }
+func CalculationPath(z, c complex128, points []complex128, frac *fractal.Fractal) {
+	track(z, c, points, registerPaths, frac)
+}
 
-// func track(plane func(z, c complex128) complex128, f func([]complex128, int, int, int, int64, histo.Histo, histo.Histo, histo.Histo), c, coefficient complex128, points []complex128, iterations int64, bailout float64, width, height int, r, g, b histo.Histo) {
-func track(c complex128, points []complex128, f func(int64, []complex128, *fractal.Fractal), frac *fractal.Fractal) {
+func track(z, c complex128, points []complex128, f func(int64, []complex128, *fractal.Fractal), frac *fractal.Fractal) {
 	// We ignore all values that we know are in the bulb, and will therefore
 	// converge.
 	if isInBulb(c) {
@@ -58,13 +58,11 @@ func track(c complex128, points []complex128, f func(int64, []complex128, *fract
 	// Number of points that we will return.
 	var num int
 
-	// z is the point of the function.
-	z := complex(0, 0)
-
 	// See if the complex function diverges before we reach our iteration count.
 	var i int64
 	for i = 0; i < frac.Iterations; i++ {
-		z = frac.Coef*complex(real(z), imag(z))*complex(real(z), imag(z)) + frac.Coef*complex(real(c), imag(c))
+		// z = frac.Coef*complex(real(z), imag(z))*complex(real(z), imag(z)) + frac.Coef*complex(real(c), imag(c))
+		z = complex(math.Sin(real(z))*imag(z), imag(z))*complex(math.Sin(real(z))*imag(z), imag(z)) + c
 
 		// Cycle-detection (See algorithmic explanation in README.md).
 		if (i-1)&i == 0 && i > 1 {
@@ -88,35 +86,35 @@ func track(c complex128, points []complex128, f func(int64, []complex128, *fract
 
 // Converged returns all points in the domain of the complex function before
 // diverging.
-func Converged(plane func(complex128, complex128) complex128, c, coefficient complex128, points []complex128, iterations int64, bailout float64, width, height int, r, g, b histo.Histo) {
+func Converged(z, c complex128, points []complex128, frac *fractal.Fractal) {
+	converged(z, c, points, registerOrbits, frac)
+}
+func converged(z, c complex128, points []complex128, f func(int64, []complex128, *fractal.Fractal), frac *fractal.Fractal) {
 	// Saved value for cycle-detection.
 	var bfract complex128
 
 	// Number of points that we will return.
 	var num int
 
-	// z is the point of the function.
-	z := complex(0, 0)
-
 	// See if the complex function diverges before we reach our iteration count.
 	var i int64
-	for i = 0; i < iterations; i++ {
-		z = coefficient*complex(real(z), imag(z))*complex(real(z), imag(z)) + coefficient*complex(real(c), imag(c))
+	for i = 0; i < frac.Iterations; i++ {
+		z = frac.Coef*complex(real(z), imag(z))*complex(real(z), imag(z)) + frac.Coef*complex(real(c), imag(c))
 
 		// Cycle-detection (See algorithmic explanation in README.md).
 		if (i-1)&i == 0 && i > 1 {
 			bfract = z
 		} else if z == bfract {
-			// registerOrbits(points, width, height, num, iterations, r, g, b)
+			f(i, points, frac)
 			return
 		}
 		// This point diverges. Since it's the anti-buddhabrot, we are not
 		// interested in these points.
-		if x, y := real(z), imag(z); x*x+y*y >= bailout {
+		if x, y := real(z), imag(z); x*x+y*y >= frac.Bailout {
 			return
 		}
 
-		points[num] = plane(z, c)
+		points[num] = frac.Plane(z, c)
 		num++
 	}
 	// This point converges; assumed under the number of iterations. Since it's
@@ -127,41 +125,41 @@ func Converged(plane func(complex128, complex128) complex128, c, coefficient com
 
 // Primitive returns all points in the domain of the complex function
 // diverging.
-func Primitive(plane func(complex128, complex128) complex128, c, coefficient complex128, points []complex128, iterations int64, bailout float64, width, height int, r, g, b histo.Histo) {
+func Primitive(z, c complex128, points []complex128, frac *fractal.Fractal) {
+	primitive(z, c, points, registerOrbits, frac)
+}
+func primitive(z, c complex128, points []complex128, f func(int64, []complex128, *fractal.Fractal), frac *fractal.Fractal) {
 	// Saved value for cycle-detection.
 	var bfract complex128
 
 	// Number of points that we will return.
 	var num int
 
-	// z is the point of the function.
-	z := complex(0, 0)
-
 	// See if the complex function diverges before we reach our iteration count.
 	var i int64
-	for i = 0; i < iterations; i++ {
-		z = coefficient*complex(real(z), imag(z))*complex(real(z), imag(z)) + coefficient*complex(real(c), imag(c))
+	for i = 0; i < frac.Iterations; i++ {
+		z = frac.Coef*complex(real(z), imag(z))*complex(real(z), imag(z)) + frac.Coef*complex(real(c), imag(c))
 
 		// Cycle-detection (See algorithmic explanation in README.md).
 		if (i-1)&i == 0 && i > 1 {
 			bfract = z
 		} else if z == bfract {
-			// registerOrbits(points, width, height, num, iterations, r, g, b)
+			f(i, points, frac)
 			return
 		}
 		// This point diverges. Since it's the primitive brot we register the
 		// orbit.
-		if x, y := real(z), imag(z); x*x+y*y >= bailout {
-			// registerOrbits(points, width, height, num, iterations, r, g, b)
+		if x, y := real(z), imag(z); x*x+y*y >= frac.Bailout {
+			f(i, points, frac)
 			return
 		}
 		// Save the point.
-		points[num] = plane(z, c)
+		points[num] = frac.Plane(z, c)
 		num++
 	}
 	// This point converges; assumed under the number of iterations.
 	// Since it's the primitive brot we register the orbit.
-	// registerOrbits(points, width, height, num, iterations, r, g, b)
+	f(i, points, frac)
 	return
 }
 
@@ -245,10 +243,9 @@ func registerOrbits(it int64, points []complex128, frac *fractal.Fractal) {
 	}
 
 	// Get color from gradient based on iteration count of the orbit.
-	imp := 0.0
 	red, green, blue := frac.Method.Get(it, frac.Iterations)
-	for _, z := range points[:it] {
-		registerPoint(z, it, frac, red, green, blue, &imp)
+	for _, p := range points[:it] {
+		registerPoint(p, it, frac, red, green, blue)
 	}
 
 	// if p, ok := pointImp(points[0], frac.Width, frac.Height); ok && imp != 0 {
@@ -256,9 +253,9 @@ func registerOrbits(it int64, points []complex128, frac *fractal.Fractal) {
 	// }
 }
 
-func registerPoint(z complex128, it int64, frac *fractal.Fractal, red, green, blue float64, imp *float64) {
+func registerPoint(z complex128, it int64, frac *fractal.Fractal, red, green, blue float64) {
 	if p, ok := point(z, frac); ok {
-		increase(p, imp, it, frac, red, green, blue)
+		increase(p, it, frac, red, green, blue)
 	}
 }
 
@@ -288,40 +285,38 @@ func pointImp(z complex128, width, height int) (image.Point, bool) {
 	return p, true
 }
 
-func increase(p image.Point, imp *float64, it int64, frac *fractal.Fractal, red, green, blue float64) {
+func increase(p image.Point, it int64, frac *fractal.Fractal, red, green, blue float64) {
 	frac.R[p.X][p.Y] += red
 	frac.G[p.X][p.Y] += green
 	frac.B[p.X][p.Y] += blue
-
-	(*imp)++
 }
 
-func registerPaths(points []complex128, width, height, it int, iterations int64, r, g, b histo.Histo) {
-	// // Orbits with low iteration count will be ignored to reduce noise.
-	// if it < 100 {
-	// 	return
-	// }
-	// // Get color from gradient based on iteration count of the orbit.
-	// // red, green, blue := colorization.Get(it, iterations)
-	// first := true
-	// // var last image.Point
-	// bresPoints := make([]image.Point, 0, intermediaryPoints)
-	// for _, z := range points[:it] {
-	// 	// Convert the complex point to a pixel coordinate.
-	// 	p, ok := point(z, width, height)
-	// 	if !ok {
-	// 		continue
-	// 	}
-	// 	if first {
-	// 		first = false
-	// 		// last = p
-	// 		continue
-	// 	}
-	// 	// for _, prim := range Bresenham(last, p, bresPoints) {
-	// 	// r[prim.X][prim.Y] += red
-	// 	// g[prim.X][prim.Y] += green
-	// 	// b[prim.X][prim.Y] += blue
-	// 	// }
-	// 	// last = p
-	// }
+func registerPaths(it int64, points []complex128, frac *fractal.Fractal) {
+	// Orbits with low iteration count will be ignored to reduce noise.
+	if it < 100 {
+		return
+	}
+	// Get color from gradient based on iteration count of the orbit.
+	red, green, blue := frac.Method.Get(it, frac.Iterations)
+	first := true
+	var last image.Point
+	bresPoints := make([]image.Point, 0, intermediaryPoints)
+	for _, z := range points[:it] {
+		// Convert the complex point to a pixel coordinate.
+		p, ok := point(z, frac)
+		if !ok {
+			continue
+		}
+		if first {
+			first = false
+			last = p
+			continue
+		}
+		for _, prim := range Bresenham(last, p, bresPoints) {
+			frac.R[prim.X][prim.Y] += red
+			frac.G[prim.X][prim.Y] += green
+			frac.B[prim.X][prim.Y] += blue
+		}
+		last = p
+	}
 }
