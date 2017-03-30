@@ -2,9 +2,12 @@
 package coloring
 
 import (
+	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"math/rand"
+	"text/tabwriter"
 	"time"
 )
 
@@ -83,11 +86,33 @@ const (
 	IterationCount
 )
 
+func (t Type) String() string {
+	switch t {
+	case Modulo:
+		return "Modulo"
+	case IterationCount:
+		return "IterationCount"
+	default:
+		return "fail"
+	}
+}
+
 type Coloring struct {
 	Grad   Gradient
 	mode   Type
 	Keys   []int
 	Ranges []float64
+}
+
+func (c *Coloring) String() string {
+	var buf bytes.Buffer // A Buffer needs no initialization.
+	w := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', 0)
+	fmt.Fprintf(w, "\tGrad:\t%v\n", c.Grad)
+	fmt.Fprintf(w, "\tMode:\t%v\n", c.mode)
+	fmt.Fprintf(w, "\tKeys:\t%v\n", c.Keys)
+	fmt.Fprintf(w, "\tRanges:\t%v\n", c.Ranges)
+	w.Flush()
+	return string(buf.Bytes())
 }
 
 // function pointer which makes get unneccessary

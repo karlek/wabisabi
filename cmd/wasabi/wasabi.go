@@ -94,11 +94,11 @@ func buddha() (err error) {
 	// xor thing
 	// orbit gradient
 	// function for iteration
-	method := coloring.NewColoring(coloring.IterationCount, grad, ranges)
+	method := coloring.NewColoring(mode, grad, ranges)
 
 	logrus.Println("[.] Initializing.")
 	var frac *fractal.Fractal
-	ren := render.New(width, height, f, factor, exposure)
+	var ren *render.Render
 	// Load previous histograms and render the image with, maybe, new options.
 
 	settings := logrus.Fields{
@@ -121,30 +121,38 @@ func buddha() (err error) {
 		"seed":       seed,
 	}
 	logrus.WithFields(settings).Println("Config")
+
+	ren = render.New(width, height, f, factor, exposure)
 	if load {
 		logrus.Println("[-] Loading visits.")
 		frac, ren, err = loadArt()
 		if err != nil {
 			return err
 		}
-		fmt.Println(ren)
+		fmt.Println(frac, ren)
 	} else {
 		// Fill our histogram bins of the orbits.
-		frac = fractal.New(width, height, iterations, method, coefficient, bailout, plane, zoom, offsetReal, offsetImag, seed)
+		frac = fractal.New(width, height, iterations, method, coefficient, bailout, plane, zoom, offsetReal, offsetImag, seed, intermediaryPoints)
+		fmt.Println(frac)
 		fillHistograms(frac, runtime.NumCPU())
-	}
-	if save {
-		logrus.Println("[i] Saving r, g, b channels")
-		if err := saveArt(frac, ren); err != nil {
-			return err
+		if save {
+			logrus.Println("[i] Saving r, g, b channels")
+			if err := saveArt(frac, ren); err != nil {
+				return err
+			}
 		}
 	}
+	ren.Exposure = exposure
+	ren.Factor = factor
+	ren.F = f
+	fmt.Println(ren)
 	fmt.Println(histo.Max(frac.R), histo.Max(frac.G), histo.Max(frac.B))
-	fmt.Println("Longest orbit:", mandel.Max)
 	if histo.Max(frac.R)+histo.Max(frac.G)+histo.Max(frac.B) == 0 {
 		out += "-black"
 		return nil
 	}
+	fmt.Println("Longest orbit:", mandel.Max)
+
 	// Plot and render to file.
 	plot.Plot(ren, frac)
 	plot.Render(ren.Image, filePng, fileJpg, out)
@@ -196,7 +204,7 @@ func arbitrary(frac *fractal.Fractal, rng *rand7i.ComplexRNG, share int, wg *syn
 		bar.Inc()
 		// Our random point which, hopefully, will create an orbit!
 
-		// z := rng.Complex128Go()
+		z = rng.Complex128Go()
 		// z = complex(real(z), 0)
 		// z = complex(0, imag(z))
 		c := rng.Complex128Go()

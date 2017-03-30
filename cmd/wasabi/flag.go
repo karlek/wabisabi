@@ -64,6 +64,10 @@ var (
 	imagCoefficient float64
 	coefficient     complex128
 
+	// Coloring mode.
+	mode    coloring.Type
+	modeStr string
+
 	// Zoom level around _offset_.
 	zoom float64
 
@@ -113,6 +117,7 @@ func init() {
 	flag.BoolVar(&ziciFlag, "zici", false, "Render the Zi, Ci capital plane.")
 	flag.BoolVar(&importanceMap, "important", false, "Render importance sampling map.")
 	flag.StringVar(&fun, "function", "exp", "color scaling function")
+	flag.StringVar(&modeStr, "mode", "iteration", "coloring mode")
 	flag.StringVar(&out, "out", "a", "output filename. Image file type will be suffixed.")
 	flag.StringVar(&palettePath, "palette", "", "path to image to be used as color palette")
 	flag.StringVar(&trapPath, "trap", "", "orbit trap path to image.")
@@ -138,6 +143,18 @@ func init() {
 func usage() {
 	fmt.Fprintf(os.Stderr, "%s [OPTIONS],,,\n", os.Args[0])
 	flag.PrintDefaults()
+}
+
+// parseModeFlag parses the _mode_ string to a coloring function.
+func parseModeFlag() {
+	switch modeStr {
+	case "iteration":
+		mode = coloring.IterationCount
+	case "modulo":
+		mode = coloring.Modulo
+	default:
+		logrus.Fatalln("invalid coloring function:", modeStr)
+	}
 }
 
 // parseFunctionFlag parses the _fun_ string to a color scaling function.
@@ -172,6 +189,7 @@ func parseAdvancedFlags() {
 
 	// Parse the _function_ argument to a function pointer.
 	parseFunctionFlag()
+	parseModeFlag()
 
 	// Save the point.
 	switch {

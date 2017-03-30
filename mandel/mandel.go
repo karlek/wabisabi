@@ -2,14 +2,9 @@ package mandel
 
 import (
 	"image"
-	"math"
 
 	"github.com/karlek/wabisabi/fractal"
 	"github.com/karlek/wabisabi/histo"
-)
-
-const (
-	intermediaryPoints = 80
 )
 
 // Credits: https://github.com/morcmarc/buddhabrot/blob/master/buddhabrot.go
@@ -45,6 +40,19 @@ func CalculationPath(z, c complex128, points []complex128, frac *fractal.Fractal
 	track(z, c, points, registerPaths, frac)
 }
 
+func abs(c complex128) complex128 {
+	// return complex(real(c), -imag(c))
+	// return complex(math.Abs(real(c)), math.Abs(imag(c)))
+	return complex(real(c)/imag(c), real(c))
+	// return complex(real(c)*imag(c), -imag(c))
+	// return complex(-imag(c), -real(c))
+	// return complex(imag(c), real(c))
+	// return complex(imag(c), real(c))
+	// return complex(imag(c), imag(c))
+	// return complex(real(c), real(c))
+	// return complex(math.Abs(real(c)), math.Abs(imag(c)))
+}
+
 func track(z, c complex128, points []complex128, f func(int64, []complex128, *fractal.Fractal), frac *fractal.Fractal) {
 	// We ignore all values that we know are in the bulb, and will therefore
 	// converge.
@@ -62,7 +70,31 @@ func track(z, c complex128, points []complex128, f func(int64, []complex128, *fr
 	var i int64
 	for i = 0; i < frac.Iterations; i++ {
 		// z = frac.Coef*complex(real(z), imag(z))*complex(real(z), imag(z)) + frac.Coef*complex(real(c), imag(c))
-		z = complex(math.Sin(real(z))*imag(z), imag(z))*complex(math.Sin(real(z))*imag(z), imag(z)) + c
+		// z = complex(math.Sin(real(z))*imag(z), imag(z))*complex(math.Sin(real(z))*imag(z), imag(z)) + c
+		z = z*z + c
+		// z1 := complex(math.Sin(real(z))*imag(z), imag(z))
+		// z2 := complex(imag(z), math.Cos(math.Exp(real(z))))
+		// z = frac.Coef*z1*z2 + c
+		// z = z + z*c + c
+		// z = abs(z*z) + c
+		// z = z + c
+		// z = cmplx.Pow(c, z) + c
+		// z = cmplx.Sqrt(z) + cmplx.Pow(c, c)
+		// z = z*c
+		// z = cmplx.Sqrt(z) + cmplx.Pow(c, c)
+		// z = z*c + cmplx.Sin(z+c)
+		// z = z*c + cmplx.Cos(z+c)
+		// z = z*z/c + 1
+		// z = (z*z)/c + c*c
+		// z = z*z + c
+		// z = z*c + (z+1)/c
+		// z = z * c
+		// z = z * cmplx.Log(c)
+		// z = cmplx.Sin(z) + 1 + z*cmplx.Log(c)
+		// z = abs(z*z) + c
+		// complex(-math.Abs(real(c)), imag(c))
+		// complex(math.Abs(real(c)), imag(c))
+		// complex(imag(c)-real(c), real(c)*imag(c))
 
 		// Cycle-detection (See algorithmic explanation in README.md).
 		if (i-1)&i == 0 && i > 1 {
@@ -163,10 +195,6 @@ func primitive(z, c complex128, points []complex128, f func(int64, []complex128,
 	return
 }
 
-func abs(c complex128) complex128 {
-	return complex(real(c), imag(c))
-}
-
 func Bresenham(start, end image.Point, points []image.Point) []image.Point {
 	// Bresenham's
 	var cx int = start.X
@@ -234,10 +262,6 @@ var Max int64
 // registerOrbits register the points in an orbit in r, g, b channels depending
 // on it's iteration count.
 func registerOrbits(it int64, points []complex128, frac *fractal.Fractal) {
-	// Orbits with low iteration count will be ignored to reduce noise.
-	if it < 0 {
-		return
-	}
 	if it > Max {
 		Max = it
 	}
@@ -292,15 +316,11 @@ func increase(p image.Point, it int64, frac *fractal.Fractal, red, green, blue f
 }
 
 func registerPaths(it int64, points []complex128, frac *fractal.Fractal) {
-	// Orbits with low iteration count will be ignored to reduce noise.
-	if it < 100 {
-		return
-	}
 	// Get color from gradient based on iteration count of the orbit.
 	red, green, blue := frac.Method.Get(it, frac.Iterations)
 	first := true
 	var last image.Point
-	bresPoints := make([]image.Point, 0, intermediaryPoints)
+	bresPoints := make([]image.Point, 0, frac.Points)
 	for _, z := range points[:it] {
 		// Convert the complex point to a pixel coordinate.
 		p, ok := point(z, frac)

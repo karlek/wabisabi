@@ -1,9 +1,12 @@
 package render
 
 import (
+	"bytes"
+	"fmt"
 	"image"
 	"reflect"
 	"runtime"
+	"text/tabwriter"
 )
 
 type Render struct {
@@ -23,4 +26,16 @@ func New(width, height int, f func(float64, float64) float64, factor, exposure f
 
 func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+func (ren *Render) String() string {
+	var buf bytes.Buffer // A Buffer needs no initialization.
+	w := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', 0)
+	fmt.Fprintf(w, "Dimension:\t%v\n", ren.Image.Bounds())
+	fmt.Fprintf(w, "Function:\t%s\n", getFunctionName(ren.F))
+	fmt.Fprintf(w, "Factor:\t%f\n", ren.Factor)
+	fmt.Fprintf(w, "Exposure:\t%f\n", ren.Exposure)
+	fmt.Fprintf(w, "Points:\t%d\n", ren.Points)
+	w.Flush()
+	return string(buf.Bytes())
 }
