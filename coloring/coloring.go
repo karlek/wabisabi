@@ -73,6 +73,11 @@ func NewPrettyGradient(iterations float64) Gradient {
 	return grad
 }
 
+func ToRGBA(c color.Color) color.RGBA {
+	r, g, b, _ := c.RGBA()
+	return color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), 255}
+}
+
 // DivergenceToColor returns a color depending on the number of iterations it
 // took for the fractal to escape the fractal set.
 func (g Gradient) DivergenceToColor(escapedIn int) color.Color {

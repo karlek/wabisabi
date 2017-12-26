@@ -29,15 +29,59 @@ func isInBulb(c complex128) bool {
 	return true
 }
 
+func FieldLines(z, c complex128, points []complex128, frac *fractal.Fractal) int64 {
+	zp := complex(0, 0)
+	g := 10000.0
+	// We ignore all values that we know are in the bulb, and will therefore
+	// converge.
+	if isInBulb(c) {
+		return -1
+	}
+
+	// Saved value for cycle-detection.
+	var bfract complex128
+
+	// Number of points that we will return.
+	var num int
+
+	// See if the complex function diverges before we reach our iteration count.
+	var i int64
+	for i = 0; i < frac.Iterations; i++ {
+		z = z*z + c
+
+		// Cycle-detection (See algorithmic explanation in README.md).
+		if (i-1)&i == 0 && i > 1 {
+			bfract = z
+		} else if z == bfract {
+			return -1
+		}
+		// This point diverges, so we all the preceeding points are interesting
+		// and will be registered.
+		// if x, y := real(z), imag(z); x*x+y*y >= frac.Bailout {
+		if real, imag, rp, ip := real(z), imag(z), real(zp), imag(zp); real/rp > g && imag/ip > g {
+			registerOrbits(i, points, frac)
+			return i
+		}
+		// }
+
+		points[num] = frac.Plane(z, c)
+		num++
+		zp = z
+	}
+	// This point converges; assumed under the number of iterations.
+	registerOrbits(i, points, frac)
+	return i
+}
+
 // escaped returns all points in the domain of the complex function before
 // diverging.
 // func Escaped(plane func(complex128, complex128) complex128, c, coefficient complex128, points []complex128, iterations int64, bailout float64, width, height int, r, g, b histo.Histo) {
-func Escaped(z, c complex128, points []complex128, frac *fractal.Fractal) {
-	track(z, c, points, registerOrbits, frac)
+func Escaped(z, c complex128, points []complex128, frac *fractal.Fractal) int64 {
+	return track(z, c, points, registerOrbits, frac)
 }
 
-func CalculationPath(z, c complex128, points []complex128, frac *fractal.Fractal) {
-	track(z, c, points, registerPaths, frac)
+func CalculationPath(z, c complex128, points []complex128, frac *fractal.Fractal) int64 {
+	return track(z, c, points, registerPaths, frac)
 }
 
 func abs(c complex128) complex128 {
@@ -53,11 +97,11 @@ func abs(c complex128) complex128 {
 	// return complex(math.Abs(real(c)), math.Abs(imag(c)))
 }
 
-func track(z, c complex128, points []complex128, f func(int64, []complex128, *fractal.Fractal), frac *fractal.Fractal) {
+func track(z, c complex128, points []complex128, f func(int64, []complex128, *fractal.Fractal), frac *fractal.Fractal) int64 {
 	// We ignore all values that we know are in the bulb, and will therefore
 	// converge.
 	if isInBulb(c) {
-		return
+		return -1
 	}
 
 	// Saved value for cycle-detection.
@@ -100,26 +144,27 @@ func track(z, c complex128, points []complex128, f func(int64, []complex128, *fr
 		if (i-1)&i == 0 && i > 1 {
 			bfract = z
 		} else if z == bfract {
-			return
+			return -1
 		}
 		// This point diverges, so we all the preceeding points are interesting
 		// and will be registered.
 		if x, y := real(z), imag(z); x*x+y*y >= frac.Bailout {
 			f(i, points, frac)
-			return
+			return i
 		}
 
 		points[num] = frac.Plane(z, c)
 		num++
 	}
 	// This point converges; assumed under the number of iterations.
-	return
+	return -1
 }
 
 // Converged returns all points in the domain of the complex function before
 // diverging.
-func Converged(z, c complex128, points []complex128, frac *fractal.Fractal) {
+func Converged(z, c complex128, points []complex128, frac *fractal.Fractal) int64 {
 	converged(z, c, points, registerOrbits, frac)
+	return 0
 }
 func converged(z, c complex128, points []complex128, f func(int64, []complex128, *fractal.Fractal), frac *fractal.Fractal) {
 	// Saved value for cycle-detection.
@@ -157,8 +202,9 @@ func converged(z, c complex128, points []complex128, f func(int64, []complex128,
 
 // Primitive returns all points in the domain of the complex function
 // diverging.
-func Primitive(z, c complex128, points []complex128, frac *fractal.Fractal) {
+func Primitive(z, c complex128, points []complex128, frac *fractal.Fractal) int64 {
 	primitive(z, c, points, registerOrbits, frac)
+	return 0
 }
 func primitive(z, c complex128, points []complex128, f func(int64, []complex128, *fractal.Fractal), frac *fractal.Fractal) {
 	// Saved value for cycle-detection.

@@ -4,8 +4,11 @@ import (
 	"encoding/gob"
 	"flag"
 	"fmt"
+	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"math"
+	"math/rand"
 	"os"
 	"os/signal"
 	"reflect"
@@ -21,7 +24,6 @@ import (
 	"github.com/karlek/progress/barcli"
 	"github.com/karlek/wabisabi/coloring"
 	"github.com/karlek/wabisabi/fractal"
-	"github.com/karlek/wabisabi/histo"
 	"github.com/karlek/wabisabi/mandel"
 	"github.com/karlek/wabisabi/plot"
 	"github.com/karlek/wabisabi/render"
@@ -68,28 +70,30 @@ func buddha() (err error) {
 	// grad.AddColor(colorful.Color{1, 0.5, 0})
 	// grad.AddColor(colorful.Color{1, 1, 1})
 
+	grad.AddColor(colorful.Color{0, 1, 0})
+	grad.AddColor(colorful.Color{0, 0, 1})
 	grad.AddColor(colorful.Color{1, 0, 0})
 	// grad.AddColor(colorful.Color{0, 0, 0})
-	grad.AddColor(colorful.Color{0, .5, 1})
-	grad.AddColor(colorful.Color{0, 0, 0})
+	// grad.AddColor(colorful.Color{0, 0, 0})
 	// grad.AddColor(colorful.Color{.65, 1, 0})
-	grad.AddColor(colorful.Color{1, 1, 1})
+	// grad.AddColor(colorful.Color{1, 1, 1})
 
 	ranges := []float64{
-		50.0 / float64(iterations),
+		// 20.0 / float64(iterations),
 		// 200.0 / float64(iterations),
-		400.0 / float64(iterations),
+		// 200.0 / float64(iterations),
 		// 1000.0 / float64(iterations),
 		// 2000.0 / float64(iterations),
-		20000.0 / float64(iterations),
-		// 0.005,
+		// 2000.0 / float64(iterations),
+		// 20000.0 / float64(iterations),
+		// 0.0000001,
+		// 0.000001,
+		0.00001,
+		0.0001,
+		0.001,
 		// 0.01,
-		// 0.02,
 		// 0.1,
-		// 0.2,
-		// 0.3,
-		// 0.4,
-		0.5,
+		// 0.5,
 	}
 	// xor thing
 	// orbit gradient
@@ -146,14 +150,15 @@ func buddha() (err error) {
 	ren.Factor = factor
 	ren.F = f
 	fmt.Println(ren)
-	fmt.Println(histo.Max(frac.R), histo.Max(frac.G), histo.Max(frac.B))
-	if histo.Max(frac.R)+histo.Max(frac.G)+histo.Max(frac.B) == 0 {
-		out += "-black"
-		return nil
-	}
-	fmt.Println("Longest orbit:", mandel.Max)
+	// fmt.Println(histo.Max(frac.R), histo.Max(frac.G), histo.Max(frac.B))
+	// if histo.Max(frac.R)+histo.Max(frac.G)+histo.Max(frac.B) == 0 {
+	// 	out += "-black"
+	// 	return nil
+	// }
+	// fmt.Println("Longest orbit:", mandel.Max)
 
 	// Plot and render to file.
+	fmt.Println(ren.Factor)
 	plot.Plot(ren, frac)
 	plot.Render(ren.Image, filePng, fileJpg, out)
 	sum := 0
@@ -183,20 +188,49 @@ func fillHistograms(frac *fractal.Fractal, workers int) {
 	wg := new(sync.WaitGroup)
 	wg.Add(workers)
 	share := int(tries*float64(width*height)) / workers
+
+	testPlot := make(chan OrbitPoint)
+	go func(testPlot chan OrbitPoint, frac *fractal.Fractal) {
+		// img := image.NewRGBA(image.Rect(0, 0, width, height))
+		// grad := coloring.NewPrettyGradient(float64(frac.Iterations))
+		// for op := range testPlot {
+		// 	fmt.Println(op)
+		// 	p := ptoc(op.P, frac)
+		// 	// c := grad.DivergenceToColor(int(op.Len))
+
+		// 	img.SetRGBA(p.X, p.Y, color.RGBA{0, 0, 0, 0})
+		// }
+	}(testPlot, frac)
 	for n := 0; n < workers; n++ {
 		// Our worker channel to send our orbits on!
 		rng := rand7i.NewComplexRNG(int64(n+1) + seed)
-		go arbitrary(frac, &rng, share, wg, bar)
+		go arbitrary(testPlot, frac, &rng, share, wg, bar)
+		// go iterative(frac, &rng, share, wg, bar)
 	}
 	wg.Wait()
 	bar.SetMax()
 	bar.Print()
 }
 
+// func toRGBA(c color.
+type OrbitPoint struct {
+	Len int64
+	P   complex128
+}
+
+func ptoc(c complex128, frac *fractal.Fractal) (p image.Point) {
+	r, i := real(c), imag(c)
+
+	p.X = int((float64(frac.Width)/2.5)*frac.Zoom*(r+frac.OffsetReal) + float64(frac.Width)/2.0)
+	p.Y = int((float64(frac.Height)/2.5)*frac.Zoom*(i+frac.OffsetImag) + float64(frac.Height)/2.0)
+
+	return p
+}
+
 // arbitrary will try to find orbits in the complex function by choosing a
 // random point in it's domain and iterating it a number of times to see if it
 // converges or diverges.
-func arbitrary(frac *fractal.Fractal, rng *rand7i.ComplexRNG, share int, wg *sync.WaitGroup, bar *barcli.Bar) {
+func arbitrary(testPlot chan OrbitPoint, frac *fractal.Fractal, rng *rand7i.ComplexRNG, share int, wg *sync.WaitGroup, bar *barcli.Bar) {
 	var potentials = make([]complex128, iterations)
 	z := complex(0, 0)
 	for i := 0; i < share; i++ {
@@ -204,12 +238,44 @@ func arbitrary(frac *fractal.Fractal, rng *rand7i.ComplexRNG, share int, wg *syn
 		bar.Inc()
 		// Our random point which, hopefully, will create an orbit!
 
-		z = rng.Complex128Go()
+		// z = rng.Complex128Go()
 		// z = complex(real(z), 0)
 		// z = complex(0, imag(z))
 		c := rng.Complex128Go()
-		brot(z, c, potentials, frac)
+		mandel.FieldLines(z, c, potentials, frac)
+
+		// testPlot <- OrbitPoint{Len: brot(z, c, potentials, frac), P: c}
 	}
+	wg.Done()
+}
+
+func iterative(frac *fractal.Fractal, rng *rand7i.ComplexRNG, share int, wg *sync.WaitGroup, bar *barcli.Bar) {
+	var potentials = make([]complex128, iterations)
+	z := complex(0, 0)
+	c := complex(0, 0)
+	// h := (5000 / float64(share))
+	h := 4 / math.Sqrt(float64(share))
+	nudge := rand.Float64() * h
+	for 100*nudge > h {
+		nudge /= 10
+	}
+	h = h + nudge
+	fmt.Println("test", h, nudge, h+nudge)
+	var x, y float64
+	var i int
+	for y = -2; y <= 2; y += h {
+		for x = -2; x <= 2; x += h {
+			bar.Inc()
+			// fmt.Println(c)
+			c = complex(x, y)
+
+			z = rng.Complex128Go()
+			brot(z, c, potentials, frac)
+			i++
+		}
+		// fmt.Println(y, float64(i)/float64(share))
+	}
+	// fmt.Println(i, share, h)
 	wg.Done()
 }
 
